@@ -200,7 +200,7 @@ func GetVideoInfo(id string) (card Card, err error) {
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(binary.StringToBytes(gjson.ParseBytes(data).Raw), &card)
+	err = json.Unmarshal(binary.StringToBytes(gjson.GetBytes(data, "data").Raw), &card)
 	return
 }
 

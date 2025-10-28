@@ -11,6 +11,7 @@ import (
 
 var re = regexp.MustCompile(`^\d+$`)
 
+// RequireUser 查询用户
 func RequireUser(cfg *CookieConfig) func(ctx *zero.Ctx) bool {
 	return func(ctx *zero.Ctx) bool {
 		keyword := ctx.State["regex_matched"].([]string)[1]
