@@ -3,6 +3,7 @@ module github.com/QingFeng-awa/AnimeAPI
 go 1.20
 
 require (
+	github.com/FloatTech/AnimeAPI v0.0.0-00010101000000-000000000000
 	github.com/FloatTech/floatbox v0.0.0-20250513111443-adba80e84e80
 	github.com/FloatTech/sqlite v1.7.2
 	github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7

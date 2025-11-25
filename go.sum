@@ -5,6 +5,8 @@ github.com/FloatTech/sqlite v1.7.2/go.mod h1:/4tzfCGhrZnnjC1U8vcfwGQeF6eR649fhOs
 github.com/FloatTech/ttl v0.0.0-20240716161252-965925764562 h1:snfw7FNFym1eNnLrQ/VCf80LiQo9C7jHgrunZDwiRcY=
 github.com/FloatTech/ttl v0.0.0-20240716161252-965925764562/go.mod h1:fHZFWGquNXuHttu9dUYoKuNbm3dzLETnIOnm1muSfDs=
 github.com/PuerkitoBio/goquery v1.5.1/go.mod h1:GsLWisAFVj4WgDibEWF4pvYnkVQBpKBKeU+7zCJoLcc=
+github.com/QingFeng-awa/AnimeAPI v1.8.3 h1:fl/qRsJHi9yQ/e5c97slAjmzhvHlWK9bUH9cGjkGQiM=
+github.com/QingFeng-awa/AnimeAPI v1.8.3/go.mod h1:9tWLdPV2yGYABXXImABg9jSVyM0W+1lM2Dy5JYUc334=
 github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7 h1:S/ferNiehVjNaBMNNBxUjLtVmP/YWD6Yh79RfPv4ehU=
 github.com/RomiChan/syncx v0.0.0-20240418144900-b7402ffdebc7/go.mod h1:vD7Ra3Q9onRtojoY5sMCLQ7JBgjUsrXDnDKyFxqpf9w=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
