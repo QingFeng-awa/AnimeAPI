@@ -23,6 +23,13 @@ type Wallet struct {
 	Money int
 }
 
+// SubsidyRecord 补贴记录
+type SubsidyRecord struct {
+	Time  string
+	UID   int64
+	Money int
+}
+
 var (
 	sdb = &Storage{
 		db: sql.New("data/wallet/wallet.db"),
@@ -42,6 +49,10 @@ func init() {
 		panic(err)
 	}
 	err = sdb.db.Create("storage", &Wallet{})
+	if err != nil {
+		panic(err)
+	}
+	err = sdb.db.Create("subsidy", &SubsidyRecord{})
 	if err != nil {
 		panic(err)
 	}
@@ -69,7 +80,9 @@ func GetGroupWalletOf(sortable bool, uids ...int64) (wallets []Wallet, err error
 	return sdb.getGroupWalletOf(sortable, uids...)
 }
 
-// InsertWalletOf 更新钱包(money > 0 增加,money < 0 减少)
+// InsertWalletOf 更新钱包数据
+//
+// money > 0 增加,money < 0 减少
 func InsertWalletOf(uid int64, money int) error {
 	sdb.Lock()
 	defer sdb.Unlock()
@@ -81,7 +94,9 @@ func InsertWalletOf(uid int64, money int) error {
 	return sdb.updateWalletOf(uid, newMoney)
 }
 
-// 获取钱包数据 no lock
+// 获取钱包数据 (no lock)
+//
+// WARNING: 谨防数据库并发问题。
 func (s *Storage) getWalletOf(uid int64) (wallet Wallet) {
 	uidstr := strconv.FormatInt(uid, 10)
 	_ = s.db.Find("storage", &wallet, "WHERE uid = ?", uidstr)
@@ -106,10 +121,58 @@ func (s *Storage) getGroupWalletOf(sortable bool, uids ...int64) (wallets []Wall
 	return
 }
 
-// 更新钱包 no lock
+// 更新钱包 (no lock)
+//
+// WARNING: 谨防数据库并发问题。
 func (s *Storage) updateWalletOf(uid int64, money int) (err error) {
 	return s.db.Insert("storage", &Wallet{
 		UID:   uid,
 		Money: money,
 	})
+}
+
+// IssuancePovertySubsidies 发放贫困补助
+func IssuancePovertySubsidies(PublicFundsAccount int64, SubsidyDistributionTarget int64, SubsidyAmount int) error {
+	err := InsertWalletOf(PublicFundsAccount, -SubsidyAmount)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	dateStr := now.Format("2006-01-02")
+
+	sdb.Lock()
+	defer sdb.Unlock()
+	err = sdb.db.Insert("subsidy", &SubsidyRecord{
+		Time:  dateStr,
+		UID:   SubsidyDistributionTarget,
+		Money: SubsidyAmount,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = InsertWalletOf(SubsidyDistributionTarget, SubsidyAmount)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetFirstSubsidyRecord 获取第一个补贴记录
+//
+// 没有记录返回 nil
+func GetFirstSubsidyRecord(SubsidyDistributionTarget int64) *SubsidyRecord {
+	sdb.RLock()
+	defer sdb.RUnlock()
+
+	var record SubsidyRecord
+	uidstr := strconv.FormatInt(SubsidyDistributionTarget, 10)
+	err := sdb.db.Find("subsidy", &record, "WHERE uid = ? ORDER BY rowid ASC LIMIT 1", uidstr)
+	if err != nil {
+		return nil
+	}
+
+	return &record
 }
