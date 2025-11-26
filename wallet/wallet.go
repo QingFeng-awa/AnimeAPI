@@ -163,26 +163,37 @@ func IssuancePovertySubsidies(uid int64, money int) error {
 		return fmt.Errorf("公款账户余额不足")
 	}
 
-	err := InsertWalletOf(publicFundsAccount, -money)
+	sdb.Lock()
+	defer sdb.Unlock()
+
+	publicFundsWallet := sdb.getWalletOf(publicFundsAccount).Money
+	if publicFundsWallet < money {
+		return fmt.Errorf("公款账户余额不足")
+	}
+
+	err := sdb.updateWalletOf(publicFundsAccount, publicFundsWallet-money)
+	if err != nil {
+		return err
+	}
+
+	userWallet := sdb.getWalletOf(uid)
+	newUserMoney := userWallet.Money + money
+	if newUserMoney < 0 {
+		newUserMoney = 0
+	}
+
+	err = sdb.updateWalletOf(uid, newUserMoney)
 	if err != nil {
 		return err
 	}
 
 	now := time.Now()
 	dateStr := now.Format("2006-01-02")
-
-	sdb.Lock()
-	defer sdb.Unlock()
 	err = sdb.db.Insert("subsidy", &SubsidyRecord{
 		Time:  dateStr,
 		UID:   uid,
 		Money: money,
 	})
-	if err != nil {
-		return err
-	}
-
-	err = InsertWalletOf(uid, money)
 	if err != nil {
 		return err
 	}
