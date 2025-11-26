@@ -2,6 +2,7 @@
 package wallet
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"sync"
@@ -34,7 +35,8 @@ var (
 	sdb = &Storage{
 		db: sql.New("data/wallet/wallet.db"),
 	}
-	walletName = "Atri币"
+	walletName         = "Atri币"
+	publicFundsAccount = int64(0)
 )
 
 func init() {
@@ -94,6 +96,25 @@ func InsertWalletOf(uid int64, money int) error {
 	return sdb.updateWalletOf(uid, newMoney)
 }
 
+// GetPublicFundsId 获取公款账户 ID
+//
+// 一般公款账户 ID 为 0
+func GetPublicFundsAccountId() int64 {
+	return publicFundsAccount
+}
+
+// GetPublicFundsWallet 获取公款账户余额
+func GetPublicFundsWallet() int {
+	return sdb.getWalletOf(publicFundsAccount).Money
+}
+
+// InsertPublicFundsWallet 更新公款账户余额
+//
+// 与 InsertWalletOf 行为一致，只是将目标锁定为了公款账户。
+func InsertPublicFundsWallet(money int) error {
+	return InsertWalletOf(publicFundsAccount, money)
+}
+
 // 获取钱包数据 (no lock)
 //
 // WARNING: 谨防数据库并发问题。
@@ -132,8 +153,17 @@ func (s *Storage) updateWalletOf(uid int64, money int) (err error) {
 }
 
 // IssuancePovertySubsidies 发放贫困补助
-func IssuancePovertySubsidies(PublicFundsAccount int64, SubsidyDistributionTarget int64, SubsidyAmount int) error {
-	err := InsertWalletOf(PublicFundsAccount, -SubsidyAmount)
+//
+// 从公款账户扣款向目标发放补贴，补贴记录会被写入数据库。
+func IssuancePovertySubsidies(uid int64, money int) error {
+	if money <= 0 {
+		return fmt.Errorf("补贴金额不能为负数")
+	}
+	if GetPublicFundsWallet() < money {
+		return fmt.Errorf("公款账户余额不足")
+	}
+
+	err := InsertWalletOf(publicFundsAccount, -money)
 	if err != nil {
 		return err
 	}
@@ -145,14 +175,14 @@ func IssuancePovertySubsidies(PublicFundsAccount int64, SubsidyDistributionTarge
 	defer sdb.Unlock()
 	err = sdb.db.Insert("subsidy", &SubsidyRecord{
 		Time:  dateStr,
-		UID:   SubsidyDistributionTarget,
-		Money: SubsidyAmount,
+		UID:   uid,
+		Money: money,
 	})
 	if err != nil {
 		return err
 	}
 
-	err = InsertWalletOf(SubsidyDistributionTarget, SubsidyAmount)
+	err = InsertWalletOf(uid, money)
 	if err != nil {
 		return err
 	}
@@ -163,12 +193,12 @@ func IssuancePovertySubsidies(PublicFundsAccount int64, SubsidyDistributionTarge
 // GetFirstSubsidyRecord 获取第一个补贴记录
 //
 // 没有记录返回 nil
-func GetFirstSubsidyRecord(SubsidyDistributionTarget int64) *SubsidyRecord {
+func GetFirstSubsidyRecord(uid int64) *SubsidyRecord {
 	sdb.RLock()
 	defer sdb.RUnlock()
 
 	var record SubsidyRecord
-	uidstr := strconv.FormatInt(SubsidyDistributionTarget, 10)
+	uidstr := strconv.FormatInt(uid, 10)
 	err := sdb.db.Find("subsidy", &record, "WHERE uid = ? ORDER BY rowid ASC LIMIT 1", uidstr)
 	if err != nil {
 		return nil
